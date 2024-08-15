@@ -35,10 +35,6 @@ The **Random Video Splitter** is a Python script that splits video files into 60
 3. Specify the number of files to split.
 4. The output clips will be saved in the selected output folder.
 
-## Example
-![screenshot](screenshot.png)
-*Screenshot showing the script in action.*
-
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
