@@ -1,45 +1,53 @@
-# Random Video Splitter
+# Random Video Clip Generator
 
-## Overview
-The **Random Video Splitter** is a Python script that splits video files into 60-second clips. It excludes the first and last 2 minutes of each video, ensuring the selection of random segments within the specified timeframe. The script is designed to use the H.265 codec for video and AAC for audio, while also applying custom metadata to each clip.
+This script allows you to randomly generate 60-second video clips from selected video files. It supports MP4, MKV, AVI, and WEBM formats. The clips are created using the H265 codec for video and AAC for audio. Additionally, custom metadata such as artist, album, and comments are added to each clip.
 
 ## Features
-- Excludes the first and last 2 minutes of the video.
-- Randomly selects 60-second clips.
-- Uses H.265 codec for video compression and AAC for audio.
-- Applies custom metadata (artist, album, comment, date).
-- Allows the user to select a folder and specify the number of files to split.
+
+- **Random Clip Generation**: Selects random segments from videos and generates 60-second clips.
+- **Custom Metadata**: Allows you to input custom metadata (artist, album, comment, and date) that will be embedded in each generated clip.
+- **Multiple Formats Supported**: Handles MP4, MKV, AVI, and WEBM video files.
+- **GUI Interaction**: Uses PyQt5 for a graphical interface, making it easier to select folders and input metadata.
 
 ## Prerequisites
-- Python 3.6 or higher.
-- `ffmpeg` installed and available in the system's PATH.
-- Required Python packages listed in `requirements.txt`.
+
+- Python 3.x installed on your system.
+- Required Python packages: `moviepy`, `PyQt5`.
+- `ffmpeg` installed and accessible via command line.
 
 ## Installation
-1. Clone this repository:
-    ```bash
-    git clone <repository-url>
-    cd Random-Video-Splitter
-    ```
-2. Install the required dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
+
+1. Clone the repository or download the script.
+2. Install the required Python packages using pip:
+
+   ```bash
+   pip install moviepy PyQt5
+   ```
+
+3. Ensure `ffmpeg` is installed on your system and accessible from the command line.
 
 ## Usage
-1. Run the script:
-    ```bash
-    python Random-Video-Splitter.py
-    ```
-2. Select the folder containing the video files.
-3. Specify the number of files to split.
-4. The output clips will be saved in the selected output folder.
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+1. Run the script using Python:
 
-## Contributions
-Feel free to fork this repository and submit pull requests if you'd like to contribute.
+   ```bash
+   python script_name.py
+   ```
 
-## Issues
-If you encounter any problems, please open an issue in the [issue tracker](https://github.com/YamiParalax/Random-Video-Splitter/issues).
+2. **Step 1**: Select the folder containing the video files you want to process.
+3. **Step 2**: Specify the number of files to split from the selected folder.
+4. **Step 3**: Select an output folder where the generated clips will be saved.
+5. **Step 4**: Input custom metadata values (artist, album, and comment) that will be applied to the clips.
+
+## Important Notes
+
+- The videos need to be at least 4 minutes long for the script to generate the clips.
+- The script uses a random selection process to generate the clips, ensuring variety in each execution.
+
+## Contact
+
+For any questions or issues, you can reach out to me through the following platforms:
+
+- **Email**: [carlosfrenesi01@gmail.com](mailto:carlosfrenesi01@gmail.com)
+- **LinkedIn**: [Carlos Eduardo](https://www.linkedin.com/in/abobicarlo/)
+- **Instagram**: [@abobicarlos](https://instagram.com/abobicarlos)
