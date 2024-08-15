@@ -14,7 +14,7 @@ def select_folder():
         return folder_dialog.selectedFiles()[0]
     return None
 
-def create_random_clips(input_path, output_folder, clip_duration=60, num_clips=5):
+def create_random_clips(input_path, output_folder, custom_metadata, clip_duration=60, num_clips=5):
     try:
         output_folder = Path(output_folder)
         output_folder.mkdir(exist_ok=True)
@@ -22,18 +22,11 @@ def create_random_clips(input_path, output_folder, clip_duration=60, num_clips=5
         video = VideoFileClip(str(input_path))
         total_duration = video.duration
 
-        custom_metadata = {
-            "artist": "abobisimpsons",
-            "album": "abobisimpsons",
-            "comment": "Create by abobisimpsons",
-            "date": "2000-06-27"
-        }
-
         for i in range(num_clips):
             start = random.uniform(120, total_duration - clip_duration - 120)
             end = start + clip_duration
 
-            random_clip_path = output_folder / f"{input_path.stem} - {i+1}{input_path.suffix}"
+            random_clip_path = output_folder / f"{input_path.stem} - {i+1}.mp4"
             command = [
                 'ffmpeg',
                 '-y',
@@ -93,7 +86,22 @@ def main():
         print("No output folder selected.")
         return
 
-    # Step 3: Randomly select files and split them
+    # Step 3: Get custom metadata from user
+    metadata_value, ok = QInputDialog.getText(None, "Insert Metadata",
+                                              "Enter metadata value (artist, album, and comment):")
+    if not ok or not metadata_value:
+        print("Operation canceled or invalid input.")
+        return
+
+    # Update custom metadata with user input
+    custom_metadata = {
+        "artist": metadata_value,
+        "album": metadata_value,
+        "comment": f"Created by {metadata_value}",
+        "date": "2000-06-27"
+    }
+
+    # Step 4: Randomly select files and split them
     selected_files = random.sample(video_files, num_to_split)
     
     for input_file in selected_files:
@@ -105,7 +113,7 @@ def main():
             if duration < 240:  # The video needs to be at least 4 minutes long (240 seconds)
                 print(f"The video {input_path} is too short and cannot be split as requested.")
             else:
-                create_random_clips(input_path, output_folder, 60, 5)
+                create_random_clips(input_path, output_folder, custom_metadata, 60, 5)
         
         except Exception as e:
             print(f"Error processing video {input_path}: {e}")
