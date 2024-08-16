@@ -47,7 +47,7 @@ def create_random_clips(input_path, output_folder, custom_metadata, clip_duratio
             subprocess.run(command, check=True)
 
         video.close()
-        print(f"Random 60-second clips created and saved in folder {output_folder}.")
+        print(f"Random {clip_duration}-second clips created and saved in folder {output_folder}.")
 
     except Exception as e:
         print(f"Error creating random clips for {input_path}: {e}")
@@ -101,7 +101,16 @@ def main():
         "date": "2000-06-27"
     }
 
-    # Step 4: Randomly select files and split them
+    # Step 4: Prompt the user to enter the number of clips per video
+    num_clips, ok = QInputDialog.getInt(None, "Number of Clips per Video", 
+                                        "How many clips do you want to generate per video?",
+                                        min=1, max=20)  # Adjust the max limit as needed
+    
+    if not ok or num_clips < 1:
+        print("Operation canceled or invalid number of clips entered.")
+        return
+
+    # Step 5: Randomly select files and split them
     selected_files = random.sample(video_files, num_to_split)
     
     for input_file in selected_files:
@@ -113,7 +122,7 @@ def main():
             if duration < 240:  # The video needs to be at least 4 minutes long (240 seconds)
                 print(f"The video {input_path} is too short and cannot be split as requested.")
             else:
-                create_random_clips(input_path, output_folder, custom_metadata, 60, 5)
+                create_random_clips(input_path, output_folder, custom_metadata, 60, num_clips)
         
         except Exception as e:
             print(f"Error processing video {input_path}: {e}")
