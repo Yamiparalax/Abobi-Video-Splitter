@@ -1,30 +1,39 @@
 import sys
+from playsound import playsound
 import os
 import subprocess
-import threading
+import random
 from pathlib import Path
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from PyQt5.QtWidgets import QApplication, QFileDialog, QInputDialog, QMessageBox, QMainWindow, QPushButton, QLabel, QLineEdit, QTextEdit, QVBoxLayout, QWidget
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
-class VideoSplitter(QtCore.QObject):
-    log_signal = QtCore.pyqtSignal(str)
-    progress_signal = QtCore.pyqtSignal(int)
 
-    def __init__(self):
+class Worker(QtCore.QThread):
+    update_progress = QtCore.pyqtSignal(str)  # Signal to update the UI
+    finished_signal = QtCore.pyqtSignal()  # Signal to indicate work is finished
+
+    def __init__(self, video_files, split_folder, custom_metadata, clip_duration, num_clips):
         super().__init__()
+        self.video_files = video_files
+        self.split_folder = split_folder
+        self.custom_metadata = custom_metadata
+        self.clip_duration = clip_duration
+        self.num_clips = num_clips
 
-    def log(self, message):
-        self.log_signal.emit(message)
+    def run(self):
+        # Ensure the 'splits' folder exists inside the selected split folder
+        splits_folder_path = Path(self.split_folder) / 'splits'
+        splits_folder_path.mkdir(parents=True, exist_ok=True)
 
-    def set_progress(self, value):
-        self.progress_signal.emit(value)
+        for input_file in self.video_files:
+            input_path = Path(input_file)
+            self.create_random_clips(input_path, splits_folder_path, self.custom_metadata, self.clip_duration, self.num_clips)
+            self.update_progress.emit(f"Completed: {input_file.name}")
+        self.finished_signal.emit()  # Emit signal when the process finishes
 
-    def create_random_clips(self, input_path, output_folder, custom_metadata, clip_duration=60, num_clips=5):
+    def create_random_clips(self, input_path, output_folder, custom_metadata, clip_duration=120, num_clips=5):
         try:
-            output_folder = Path(output_folder)
-            output_folder.mkdir(exist_ok=True)
-
             video = VideoFileClip(str(input_path))
             total_duration = video.duration
 
@@ -32,7 +41,7 @@ class VideoSplitter(QtCore.QObject):
                 start = random.uniform(120, total_duration - clip_duration - 120)
                 end = start + clip_duration
 
-                random_clip_path = output_folder / f"{input_path.stem} - {i+1}.mp4"
+                random_clip_path = output_folder / f"{input_path.stem} - {i + 1}.mp4"
                 command = [
                     'ffmpeg',
                     '-y',
@@ -41,6 +50,8 @@ class VideoSplitter(QtCore.QObject):
                     '-t', f'{clip_duration:.2f}',
                     '-c:v', 'libx265',
                     '-c:a', 'aac',
+                    '-preset', 'ultrafast',
+                    '-vf', 'scale=1280:-1',
                     '-metadata', f'artist={custom_metadata["artist"]}',
                     '-metadata', f'album={custom_metadata["album"]}',
                     '-metadata', f'comment={custom_metadata["comment"]}',
@@ -50,160 +61,176 @@ class VideoSplitter(QtCore.QObject):
                     '-pix_fmt', 'yuv420p',
                     str(random_clip_path)
                 ]
-                subprocess.run(command, check=True)
-
-                # Update progress
-                self.set_progress((i + 1) / num_clips * 100)
+                result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode != 0:
+                    error_message = result.stderr.decode()
+                    self.update_progress.emit(f"Error creating random clips for {input_path}: {error_message}")
 
             video.close()
-            self.log(f"Random {clip_duration}-second clips created and saved in folder {output_folder}.")
-
         except Exception as e:
-            self.log(f"Error creating random clips for {input_path}: {e}")
+            self.update_progress.emit(f"Unexpected error: {e}")
 
-    def process_videos(self, video_files, output_folder, num_clips, custom_metadata, num_to_split):
-        try:
-            selected_files = random.sample(video_files, num_to_split)
-            total_files = len(selected_files)
 
-            for idx, input_file in enumerate(selected_files):
-                input_path = Path(input_file)
+class Ui_MainWindow(QtCore.QObject):
+    log_signal = QtCore.pyqtSignal(str)
 
-                try:
-                    duration = self.get_video_duration(input_path)
-
-                    if duration < 240:  # The video needs to be at least 4 minutes long (240 seconds)
-                        self.log(f"The video {input_path} is too short and cannot be split as requested.")
-                    else:
-                        self.create_random_clips(input_path, output_folder, custom_metadata, 60, num_clips)
-
-                except Exception as e:
-                    self.log(f"Error processing video {input_path}: {e}")
-
-                # Update progress
-                self.set_progress((idx + 1) / total_files * 100)
-
-            self.log("Splitting completed successfully.")
-
-        except Exception as e:
-            self.log(f"Error during video processing: {e}")
-
-    def get_video_duration(self, input_path):
-        with VideoFileClip(str(input_path)) as clip:
-            return clip.duration
-
-def move_files_to_splits_folder(folder):
-    splits_folder = Path(folder) / "splits"
-    if not splits_folder.exists():
-        splits_folder.mkdir()
-    for file in Path(folder).glob("*.*"):
-        if file.name != "splits":  # Ensure we don't move the splits folder itself
-            file.rename(splits_folder / file.name)
-    return splits_folder
-
-class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUI()
-        self.splitter = VideoSplitter()
-        self.thread = None
+        self.output_folder = None
+        self.split_folder = None
+        self.video_files = []
+        self.num_to_split = 0
+        self.custom_metadata = {}
+        self.is_processing = False
+        self.clip_duration = 120
 
-    def initUI(self):
-        self.setWindowTitle('Video Splitter')
-        self.setGeometry(100, 100, 600, 400)
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(600, 550)
+        MainWindow.setStyleSheet("background-color: #24273a; color: #fff;")
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
 
-        layout = QVBoxLayout()
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(170, 0, 261, 61))
+        font = QtGui.QFont()
+        font.setPointSize(24)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
 
-        self.label = QLabel("Video Splitter", self)
-        layout.addWidget(self.label)
+        self.pushButton_selectFolder = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_selectFolder.setGeometry(QtCore.QRect(10, 70, 150, 38))
+        self.pushButton_selectFolder.setObjectName("pushButton_selectFolder")
 
-        self.lineEdit_folder = QLineEdit(self)
-        self.lineEdit_folder.setPlaceholderText("Select Folder")
-        layout.addWidget(self.lineEdit_folder)
+        self.pushButton_selectSplitFolder = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_selectSplitFolder.setGeometry(QtCore.QRect(170, 70, 150, 38))
+        self.pushButton_selectSplitFolder.setObjectName("pushButton_selectSplitFolder")
 
-        self.button_select_folder = QPushButton("Select Folder", self)
-        self.button_select_folder.clicked.connect(self.select_folder)
-        layout.addWidget(self.button_select_folder)
+        self.pushButton_process = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_process.setGeometry(QtCore.QRect(330, 70, 150, 38))
+        self.pushButton_process.setObjectName("pushButton_process")
 
-        self.button_start = QPushButton("Start Splitting", self)
-        self.button_start.clicked.connect(self.start_splitting)
-        layout.addWidget(self.button_start)
+        self.textEdit_log = QtWidgets.QTextEdit(self.centralwidget)
+        self.textEdit_log.setGeometry(QtCore.QRect(10, 120, 580, 400))
+        self.textEdit_log.setStyleSheet("background-color: #181926; color: #fff;")
+        self.textEdit_log.setObjectName("textEdit_log")
 
-        self.textEdit_log = QTextEdit(self)
-        self.textEdit_log.setReadOnly(True)
-        layout.addWidget(self.textEdit_log)
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        self.progress_label = QLabel("Progress: 0%", self)
-        layout.addWidget(self.progress_label)
+        self.pushButton_selectFolder.clicked.connect(self.select_folder)
+        self.pushButton_selectSplitFolder.clicked.connect(self.select_split_folder)
+        self.pushButton_process.clicked.connect(self.process_videos)
 
-        self.central_widget.setLayout(layout)
+        self.log_signal.connect(self.update_log)
 
-        self.splitter.log_signal.connect(self.update_log)
-        self.splitter.progress_signal.connect(self.update_progress)
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "Video Cutter"))
+        self.label.setText(_translate("MainWindow", "Video Cutter"))
+        self.pushButton_selectFolder.setText(_translate("MainWindow", "Select Input Folder"))
+        self.pushButton_selectSplitFolder.setText(_translate("MainWindow", "Select Split Folder"))
+        self.pushButton_process.setText(_translate("MainWindow", "Process Videos"))
+
+    @QtCore.pyqtSlot(str)
+    def update_log(self, message):
+        self.textEdit_log.append(message)
+        self.textEdit_log.verticalScrollBar().setValue(self.textEdit_log.verticalScrollBar().maximum())
+
+    def log(self, message):
+        self.log_signal.emit(message)
 
     def select_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Folder")
+        folder = QFileDialog.getExistingDirectory(None, "Select Input Folder")
         if folder:
-            self.lineEdit_folder.setText(folder)
+            self.output_folder = folder
+            self.log(f"Selected input folder: {folder}")
 
-    def start_splitting(self):
-        folder = self.lineEdit_folder.text()
-        if not folder:
-            self.show_error("Folder cannot be empty!")
+            # Clear previous video files
+            self.video_files = []
+
+            # Scan for video files in the selected folder
+            self.video_files.extend(Path(folder).glob("*.mp4"))
+            self.video_files.extend(Path(folder).glob("*.mkv"))
+            self.video_files.extend(Path(folder).glob("*.avi"))
+            self.video_files.extend(Path(folder).glob("*.webm"))
+
+            # Log the total number of files found
+            total_files = len(self.video_files)
+            self.log(f"Total video files found: {total_files}")
+
+            if total_files == 0:
+                self.log("No video files found in the selected folder.")
+
+    def select_split_folder(self):
+        folder = QFileDialog.getExistingDirectory(None, "Select Split Folder")
+        if folder:
+            self.split_folder = folder
+            self.log(f"Selected split folder: {folder}")
+
+    def process_videos(self):
+        if self.is_processing:
+            self.show_error("Already processing videos.")
             return
 
-        # Move files to 'splits' folder
-        splits_folder = move_files_to_splits_folder(folder)
-
-        num_files, ok = QInputDialog.getInt(self, "Number of Files", "How many files to split?", min=1)
-        if not ok or num_files < 1:
-            self.show_error("Invalid number of files.")
+        if not self.output_folder or not self.video_files:
+            self.show_error("Please select an input folder with video files.")
             return
 
-        num_clips, ok = QInputDialog.getInt(self, "Number of Clips per Video", "How many clips per video?", min=1)
-        if not ok or num_clips < 1:
-            self.show_error("Invalid number of clips.")
+        if not self.split_folder:
+            self.show_error("Please select a folder where the split files will be saved.")
             return
 
-        metadata_value, ok = QInputDialog.getText(self, "Insert Metadata", "Enter metadata value (artist, album, comment):")
+        num_to_split, ok = QInputDialog.getInt(None, "Number of Files",
+                                               f"There are {len(self.video_files)} files. How many do you want to split?",
+                                               min=1, max=len(self.video_files))
+        if not ok or num_to_split < 1:
+            self.show_error("Operation canceled or invalid number entered.")
+            return
+
+        metadata_value, ok = QInputDialog.getText(None, "Insert Metadata",
+                                                  "Enter metadata value (artist, album, and comment):")
         if not ok or not metadata_value:
-            self.show_error("Invalid metadata input.")
+            self.show_error("Operation canceled or invalid input.")
             return
 
-        custom_metadata = {
+        self.custom_metadata = {
             "artist": metadata_value,
             "album": metadata_value,
             "comment": f"Created by {metadata_value}",
             "date": "2000-06-27"
         }
 
-        video_files = list(Path(splits_folder).glob("*.*"))
-
-        if not video_files:
-            self.show_error("No video files found in the selected folder.")
+        num_clips, ok = QInputDialog.getInt(None, "Number of Clips per Video",
+                                            "How many clips do you want to generate per video?",
+                                            min=1, max=20)
+        if not ok or num_clips < 1:
+            self.show_error("Operation canceled or invalid number of clips entered.")
             return
 
-        # Start processing in a separate thread
-        self.thread = threading.Thread(target=self.splitter.process_videos, args=(video_files, splits_folder, num_clips, custom_metadata, num_files))
-        self.thread.start()
+        selected_files = random.sample(self.video_files, num_to_split)
+        self.is_processing = True
+        self.log("Starting to process videos...")
 
-    def update_log(self, message):
-        self.textEdit_log.append(message)
-
-    def update_progress(self, value):
-        self.progress_label.setText(f"Progress: {value:.2f}%")
+        self.worker = Worker(selected_files, self.split_folder, self.custom_metadata, self.clip_duration, num_clips)
+        self.worker.update_progress.connect(self.log)
+        self.worker.finished_signal.connect(self.on_process_finished)
+        self.worker.start()
 
     def show_error(self, message):
-        QMessageBox.critical(self, "Error", message)
+        QMessageBox.critical(None, "Error", message)
 
-def main():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    def on_process_finished(self):
+        self.is_processing = False
+        self.log("Video processing completed.")
+
 
 if __name__ == "__main__":
-    main()
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
