@@ -3,10 +3,11 @@ from playsound import playsound
 import os
 import subprocess
 import random
+import json
 from pathlib import Path
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QInputDialog, QMessageBox
 
 
 class Worker(QtCore.QThread):
@@ -83,10 +84,12 @@ class Ui_MainWindow(QtCore.QObject):
         self.custom_metadata = {}
         self.is_processing = False
         self.clip_duration = 120
+        self.history_file = 'history.json'
+        self.load_history()
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(600, 550)
+        MainWindow.resize(600, 600)
         MainWindow.setStyleSheet("background-color: #24273a; color: #fff;")
 
         self.centralwidget = QtWidgets.QWidget(MainWindow)
@@ -99,20 +102,49 @@ class Ui_MainWindow(QtCore.QObject):
         self.label.setFont(font)
         self.label.setObjectName("label")
 
-        self.pushButton_selectFolder = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_selectFolder.setGeometry(QtCore.QRect(10, 70, 150, 38))
-        self.pushButton_selectFolder.setObjectName("pushButton_selectFolder")
+        # Input folder path field
+        self.lineEdit_inputFolder = QtWidgets.QLineEdit(self.centralwidget)
+        self.lineEdit_inputFolder.setGeometry(QtCore.QRect(10, 70, 280, 38))
+        self.lineEdit_inputFolder.setPlaceholderText("Enter input folder path here")
+        self.lineEdit_inputFolder.setObjectName("lineEdit_inputFolder")
 
-        self.pushButton_selectSplitFolder = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_selectSplitFolder.setGeometry(QtCore.QRect(170, 70, 150, 38))
-        self.pushButton_selectSplitFolder.setObjectName("pushButton_selectSplitFolder")
+        # Split folder path field
+        self.lineEdit_splitFolder = QtWidgets.QLineEdit(self.centralwidget)
+        self.lineEdit_splitFolder.setGeometry(QtCore.QRect(300, 70, 280, 38))
+        self.lineEdit_splitFolder.setPlaceholderText("Enter split folder path here")
+        self.lineEdit_splitFolder.setObjectName("lineEdit_splitFolder")
 
+        # Metadata input
+        self.lineEdit_metadata = QtWidgets.QLineEdit(self.centralwidget)
+        self.lineEdit_metadata.setGeometry(QtCore.QRect(10, 120, 280, 38))
+        self.lineEdit_metadata.setPlaceholderText("Enter metadata (artist, album, comment)")
+        self.lineEdit_metadata.setObjectName("lineEdit_metadata")
+
+        # Number of files to split
+        self.lineEdit_numFiles = QtWidgets.QLineEdit(self.centralwidget)
+        self.lineEdit_numFiles.setGeometry(QtCore.QRect(300, 120, 280, 38))
+        self.lineEdit_numFiles.setPlaceholderText("Number of files to split")
+        self.lineEdit_numFiles.setObjectName("lineEdit_numFiles")
+
+        # Number of clips per video
+        self.lineEdit_numClips = QtWidgets.QLineEdit(self.centralwidget)
+        self.lineEdit_numClips.setGeometry(QtCore.QRect(10, 170, 280, 38))
+        self.lineEdit_numClips.setPlaceholderText("Number of clips per video")
+        self.lineEdit_numClips.setObjectName("lineEdit_numClips")
+
+        # Load previous settings button
+        self.pushButton_loadHistory = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_loadHistory.setGeometry(QtCore.QRect(300, 170, 280, 38))
+        self.pushButton_loadHistory.setObjectName("pushButton_loadHistory")
+
+        # Process button
         self.pushButton_process = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_process.setGeometry(QtCore.QRect(330, 70, 150, 38))
+        self.pushButton_process.setGeometry(QtCore.QRect(10, 220, 580, 38))
         self.pushButton_process.setObjectName("pushButton_process")
 
+        # Log text area
         self.textEdit_log = QtWidgets.QTextEdit(self.centralwidget)
-        self.textEdit_log.setGeometry(QtCore.QRect(10, 120, 580, 400))
+        self.textEdit_log.setGeometry(QtCore.QRect(10, 270, 580, 300))
         self.textEdit_log.setStyleSheet("background-color: #181926; color: #fff;")
         self.textEdit_log.setObjectName("textEdit_log")
 
@@ -120,9 +152,8 @@ class Ui_MainWindow(QtCore.QObject):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        self.pushButton_selectFolder.clicked.connect(self.select_folder)
-        self.pushButton_selectSplitFolder.clicked.connect(self.select_split_folder)
         self.pushButton_process.clicked.connect(self.process_videos)
+        self.pushButton_loadHistory.clicked.connect(self.load_previous_settings)
 
         self.log_signal.connect(self.update_log)
 
@@ -130,9 +161,8 @@ class Ui_MainWindow(QtCore.QObject):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Video Cutter"))
         self.label.setText(_translate("MainWindow", "Video Cutter"))
-        self.pushButton_selectFolder.setText(_translate("MainWindow", "Select Input Folder"))
-        self.pushButton_selectSplitFolder.setText(_translate("MainWindow", "Select Split Folder"))
         self.pushButton_process.setText(_translate("MainWindow", "Process Videos"))
+        self.pushButton_loadHistory.setText(_translate("MainWindow", "Use Previous Settings"))
 
     @QtCore.pyqtSlot(str)
     def update_log(self, message):
@@ -142,58 +172,59 @@ class Ui_MainWindow(QtCore.QObject):
     def log(self, message):
         self.log_signal.emit(message)
 
-    def select_folder(self):
-        folder = QFileDialog.getExistingDirectory(None, "Select Input Folder")
-        if folder:
-            self.output_folder = folder
-            self.log(f"Selected input folder: {folder}")
-
-            # Clear previous video files
-            self.video_files = []
-
-            # Scan for video files in the selected folder
-            self.video_files.extend(Path(folder).glob("*.mp4"))
-            self.video_files.extend(Path(folder).glob("*.mkv"))
-            self.video_files.extend(Path(folder).glob("*.avi"))
-            self.video_files.extend(Path(folder).glob("*.webm"))
-
-            # Log the total number of files found
-            total_files = len(self.video_files)
-            self.log(f"Total video files found: {total_files}")
-
-            if total_files == 0:
-                self.log("No video files found in the selected folder.")
-
-    def select_split_folder(self):
-        folder = QFileDialog.getExistingDirectory(None, "Select Split Folder")
-        if folder:
-            self.split_folder = folder
-            self.log(f"Selected split folder: {folder}")
-
     def process_videos(self):
         if self.is_processing:
             self.show_error("Already processing videos.")
             return
 
-        if not self.output_folder or not self.video_files:
-            self.show_error("Please select an input folder with video files.")
+        # Get folder paths from the text fields
+        self.output_folder = self.lineEdit_inputFolder.text().strip()
+        self.split_folder = self.lineEdit_splitFolder.text().strip()
+
+        if not self.output_folder:
+            self.show_error("Please enter a valid input folder path.")
             return
 
         if not self.split_folder:
-            self.show_error("Please select a folder where the split files will be saved.")
+            self.show_error("Please enter a valid split folder path.")
             return
 
-        num_to_split, ok = QInputDialog.getInt(None, "Number of Files",
-                                               f"There are {len(self.video_files)} files. How many do you want to split?",
-                                               min=1, max=len(self.video_files))
-        if not ok or num_to_split < 1:
-            self.show_error("Operation canceled or invalid number entered.")
+        # Clear previous video files
+        self.video_files = []
+
+        # Scan for video files in the entered input folder
+        self.video_files.extend(Path(self.output_folder).glob("*.mp4"))
+        self.video_files.extend(Path(self.output_folder).glob("*.mkv"))
+        self.video_files.extend(Path(self.output_folder).glob("*.avi"))
+        self.video_files.extend(Path(self.output_folder).glob("*.webm"))
+
+        # Log the total number of files found
+        total_files = len(self.video_files)
+        self.log(f"Total video files found: {total_files}")
+
+        if total_files == 0:
+            self.log("No video files found in the entered input folder.")
             return
 
-        metadata_value, ok = QInputDialog.getText(None, "Insert Metadata",
-                                                  "Enter metadata value (artist, album, and comment):")
-        if not ok or not metadata_value:
-            self.show_error("Operation canceled or invalid input.")
+        try:
+            num_to_split = int(self.lineEdit_numFiles.text().strip())
+            if num_to_split < 1 or num_to_split > total_files:
+                raise ValueError("Invalid number of files to split.")
+        except ValueError:
+            self.show_error("Invalid number of files to split.")
+            return
+
+        try:
+            num_clips = int(self.lineEdit_numClips.text().strip())
+            if num_clips < 1:
+                raise ValueError("Invalid number of clips.")
+        except ValueError:
+            self.show_error("Invalid number of clips.")
+            return
+
+        metadata_value = self.lineEdit_metadata.text().strip()
+        if not metadata_value:
+            self.show_error("Metadata cannot be empty.")
             return
 
         self.custom_metadata = {
@@ -202,13 +233,6 @@ class Ui_MainWindow(QtCore.QObject):
             "comment": f"Created by {metadata_value}",
             "date": "2000-06-27"
         }
-
-        num_clips, ok = QInputDialog.getInt(None, "Number of Clips per Video",
-                                            "How many clips do you want to generate per video?",
-                                            min=1, max=20)
-        if not ok or num_clips < 1:
-            self.show_error("Operation canceled or invalid number of clips entered.")
-            return
 
         selected_files = random.sample(self.video_files, num_to_split)
         self.is_processing = True
@@ -219,12 +243,67 @@ class Ui_MainWindow(QtCore.QObject):
         self.worker.finished_signal.connect(self.on_process_finished)
         self.worker.start()
 
+        # Save current settings to history
+        self.save_history()
+
     def show_error(self, message):
         QMessageBox.critical(None, "Error", message)
 
     def on_process_finished(self):
         self.is_processing = False
         self.log("Video processing completed.")
+
+    def save_history(self):
+        history = {
+            'input_folder': self.output_folder,
+            'split_folder': self.split_folder,
+            'metadata': self.lineEdit_metadata.text().strip(),
+            'num_files': self.lineEdit_numFiles.text().strip(),
+            'num_clips': self.lineEdit_numClips.text().strip()
+        }
+        if os.path.exists(self.history_file):
+            with open(self.history_file, 'r') as f:
+                all_history = json.load(f)
+        else:
+            all_history = {'input_folders': [], 'split_folders': [], 'metadata': [], 'num_files': [], 'num_clips': []}
+
+        # Insert new settings at the beginning
+        all_history['input_folders'].insert(0, self.output_folder)
+        all_history['split_folders'].insert(0, self.split_folder)
+        all_history['metadata'].insert(0, history['metadata'])
+        all_history['num_files'].insert(0, history['num_files'])
+        all_history['num_clips'].insert(0, history['num_clips'])
+
+        # Limit to last 3 entries
+        all_history['input_folders'] = all_history['input_folders'][:3]
+        all_history['split_folders'] = all_history['split_folders'][:3]
+        all_history['metadata'] = all_history['metadata'][:3]
+        all_history['num_files'] = all_history['num_files'][:3]
+        all_history['num_clips'] = all_history['num_clips'][:3]
+
+        with open(self.history_file, 'w') as f:
+            json.dump(all_history, f, indent=4)
+
+    def load_history(self):
+        if os.path.exists(self.history_file):
+            with open(self.history_file, 'r') as f:
+                all_history = json.load(f)
+                self.history = all_history
+        else:
+            self.history = {'input_folders': [], 'split_folders': [], 'metadata': [], 'num_files': [], 'num_clips': []}
+
+    def load_previous_settings(self):
+        history = self.history
+        if history['input_folders']:
+            self.lineEdit_inputFolder.setText(history['input_folders'][0])
+        if history['split_folders']:
+            self.lineEdit_splitFolder.setText(history['split_folders'][0])
+        if history['metadata']:
+            self.lineEdit_metadata.setText(history['metadata'][0])
+        if history['num_files']:
+            self.lineEdit_numFiles.setText(history['num_files'][0])
+        if history['num_clips']:
+            self.lineEdit_numClips.setText(history['num_clips'][0])
 
 
 if __name__ == "__main__":

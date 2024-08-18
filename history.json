@@ -1,0 +1,22 @@
+{
+    "input_folders": [
+        "C:\\Users\\abobi\\Videos\\Simpsons",
+        "C:\\Users\\abobi\\Videos\\Family guy"
+    ],
+    "split_folders": [
+        "C:\\Users\\abobi\\Videos\\Simpsons j\u00e1 editado",
+        "C:\\Users\\abobi\\Videos\\Family guy j\u00e1 editado"
+    ],
+    "metadata": [
+        "abobidapesada",
+        "abobidapesada"
+    ],
+    "num_files": [
+        "40",
+        "40"
+    ],
+    "num_clips": [
+        "3",
+        "3"
+    ]
+}
