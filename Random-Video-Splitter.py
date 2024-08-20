@@ -1,5 +1,9 @@
 import sys
-from playsound import playsound
+
+# Replace with the actual path to your playsound directory
+sys.path.append(r'G:\Meu Drive\felquinhas.py\Random-Video-Splitter\lib\site-packages\playsound-1.3.0')
+
+import playsound
 import os
 import subprocess
 import random
