@@ -1,4 +1,4 @@
-# Abobi Cutter
+# Abobi Spliter
 
 Abobi Cutter is a Python application for processing video files. It allows you to split videos into random clips of a specified duration and save them to a designated folder. This application uses PyQt5 for the graphical user interface and MoviePy for video processing.
 

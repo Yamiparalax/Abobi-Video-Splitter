@@ -136,8 +136,8 @@ class Ui_MainWindow(QtCore.QObject):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Abobi Cutter"))
-        self.label.setText(_translate("MainWindow", "Abobi Cutter"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Abobi Spliter"))
+        self.label.setText(_translate("MainWindow", "Abobi Spliter"))
         self.pushButton_process.setText(_translate("MainWindow", "Process Videos"))
 
     @QtCore.pyqtSlot(str)
