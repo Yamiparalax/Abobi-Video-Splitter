@@ -1,53 +1,85 @@
-# Random Video Clip Generator
+# Abobi Cutter
 
-This script allows you to randomly generate 60-second video clips from selected video files. It supports MP4, MKV, AVI, and WEBM formats. The clips are created using the H265 codec for video and AAC for audio. Additionally, custom metadata such as artist, album, and comments are added to each clip.
+Abobi Cutter is a Python application for processing video files. It allows you to split videos into random clips of a specified duration and save them to a designated folder. This application uses PyQt5 for the graphical user interface and MoviePy for video processing.
 
 ## Features
 
-- **Random Clip Generation**: Selects random segments from videos and generates 60-second clips.
-- **Custom Metadata**: Allows you to input custom metadata (artist, album, comment, and date) that will be embedded in each generated clip.
-- **Multiple Formats Supported**: Handles MP4, MKV, AVI, and WEBM video files.
-- **GUI Interaction**: Uses PyQt5 for a graphical interface, making it easier to select folders and input metadata.
+- **Input Folder:** Specify the folder containing video files to be processed.
+- **Split Folder:** Define where the processed clips will be saved.
+- **Clip Duration:** Set the duration of each clip in seconds.
+- **Number of Files:** Choose how many video files to process from the input folder.
+- **Number of Clips:** Set how many clips to generate per video.
+- **Configuration Saving:** The application saves the last used configuration for easy reuse.
 
-## Prerequisites
+## Requirements
 
-- Python 3.x installed on your system.
-- Required Python packages: `moviepy`, `PyQt5`.
-- `ffmpeg` installed and accessible via command line.
+- Python 3.x
+- PyQt5
+- MoviePy
+- FFmpeg (must be installed and available in system PATH)
 
 ## Installation
 
-1. Clone the repository or download the script.
-2. Install the required Python packages using pip:
+1. **Clone the Repository:**
 
-   ```bash
-   pip install moviepy PyQt5
-   ```
+    ```bash
+    git clone https://github.com/yourusername/abobi-cutter.git
+    cd abobi-cutter
+    ```
 
-3. Ensure `ffmpeg` is installed on your system and accessible from the command line.
+2. **Install Dependencies:**
+
+    ```bash
+    pip install PyQt5 moviepy
+    ```
+
+3. **Install FFmpeg:**
+
+    Follow the installation instructions from the [FFmpeg website](https://ffmpeg.org/download.html).
 
 ## Usage
 
-1. Run the script using Python:
+1. **Run the Application:**
 
-   ```bash
-   python script_name.py
-   ```
+    ```bash
+    python main.py
+    ```
 
-2. **Step 1**: Select the folder containing the video files you want to process.
-3. **Step 2**: Specify the number of files to split from the selected folder.
-4. **Step 3**: Select an output folder where the generated clips will be saved.
-5. **Step 4**: Input custom metadata values (artist, album, and comment) that will be applied to the clips.
+2. **Configure the Settings:**
+   - **Input Folder:** Enter the path to the folder containing the video files you want to process.
+   - **Split Folder:** Enter the path to the folder where the processed clips will be saved.
+   - **Clip Duration:** Specify the duration of each clip in seconds.
+   - **Number of Files:** Enter the number of video files to process from the input folder.
+   - **Number of Clips:** Enter the number of clips to generate per video.
 
-## Important Notes
+3. **Start Processing:**
+   - Click the "Process Videos" button to start processing. The application will save the last configuration used, which will be loaded the next time the application is run.
 
-- The videos need to be at least 4 minutes long for the script to generate the clips.
-- The script uses a random selection process to generate the clips, ensuring variety in each execution.
+## Configuration File
+
+The application saves the last used configuration to a file named `last_config.json` in the same directory as the script. This file contains the following settings:
+
+- `output_folder`: The path to the input folder.
+- `split_folder`: The path to the output folder.
+- `clip_duration`: The duration of each clip in seconds.
+- `num_to_split`: The number of video files to process.
+- `num_clips`: The number of clips to generate per video.
+
+## Troubleshooting
+
+- **Error Messages:** If you encounter any issues, check the log messages in the interface for details.
+- **Invalid Paths:** Ensure that the input and split folder paths are correct and that the folders exist.
+
+## Contributing
+
+Feel free to open issues or submit pull requests if you have suggestions or improvements. Contributions are welcome!
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For any questions or issues, you can reach out to me through the following platforms:
+For any questions or feedback, please contact [carlosfrenesi01@gmail.com](mailto:your.email@example.com).
 
-- **Email**: [carlosfrenesi01@gmail.com](mailto:carlosfrenesi01@gmail.com)
-- **LinkedIn**: [Carlos Eduardo](https://www.linkedin.com/in/abobicarlo/)
-- **Instagram**: [@abobicarlos](https://instagram.com/abobicarlos)
+ to customize this README with additional information or instructions specific to your needs.
