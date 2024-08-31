@@ -1,85 +1,82 @@
 # Abobi Spliter
 
-Abobi Cutter is a Python application for processing video files. It allows you to split videos into random clips of a specified duration and save them to a designated folder. This application uses PyQt5 for the graphical user interface and MoviePy for video processing.
+**Abobi Spliter** is a Python script designed for splitting video files into random clips. It provides a graphical user interface built with PyQt5, allowing users to specify input and output folders, clip duration, and the number of clips to be created per video. The script utilizes `ffmpeg` for video processing and supports various video formats.
 
 ## Features
 
-- **Input Folder:** Specify the folder containing video files to be processed.
-- **Split Folder:** Define where the processed clips will be saved.
-- **Clip Duration:** Set the duration of each clip in seconds.
-- **Number of Files:** Choose how many video files to process from the input folder.
-- **Number of Clips:** Set how many clips to generate per video.
-- **Configuration Saving:** The application saves the last used configuration for easy reuse.
+- **Random Clip Generation**: Splits videos into random clips of specified duration.
+- **Flexible Configuration**: Allows users to set input/output folders, clip duration, number of files to process, and number of clips per video.
+- **Graphical User Interface**: Built with PyQt5 for ease of use.
+- **Progress Updates**: Displays real-time progress and completion messages.
 
 ## Requirements
 
 - Python 3.x
 - PyQt5
-- MoviePy
-- FFmpeg (must be installed and available in system PATH)
+- moviepy
+- ffmpeg (must be installed separately)
 
 ## Installation
 
-1. **Clone the Repository:**
+1. **Clone the Repository**:
 
-    ```bash
-    git clone https://github.com/yourusername/abobi-cutter.git
-    cd abobi-cutter
-    ```
+   ```bash
+   git clone https://github.com/Yamiparalax/Abobi-Video-Splitter.git
+   ```
 
-2. **Install Dependencies:**
+2. **Navigate to the Directory**:
 
-    ```bash
-    pip install PyQt5 moviepy
-    ```
+   ```bash
+   cd Abobi-Video-Splitter
+   ```
 
-3. **Install FFmpeg:**
+3. **Install Dependencies**:
 
-    Follow the installation instructions from the [FFmpeg website](https://ffmpeg.org/download.html).
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Ensure ffmpeg is Installed**:
+   - Download and install `ffmpeg` from [ffmpeg.org](https://ffmpeg.org/download.html).
 
 ## Usage
 
-1. **Run the Application:**
+1. **Run the Script**:
 
-    ```bash
-    python main.py
-    ```
+   ```bash
+   python abobi_spliter.py
+   ```
 
-2. **Configure the Settings:**
-   - **Input Folder:** Enter the path to the folder containing the video files you want to process.
-   - **Split Folder:** Enter the path to the folder where the processed clips will be saved.
-   - **Clip Duration:** Specify the duration of each clip in seconds.
-   - **Number of Files:** Enter the number of video files to process from the input folder.
-   - **Number of Clips:** Enter the number of clips to generate per video.
+2. **Configure the UI**:
+   - **Input Folder Path**: Specify the folder containing the video files.
+   - **Split Folder Path**: Specify the folder where the clips will be saved.
+   - **Clip Duration**: Enter the duration of each clip in seconds.
+   - **Number of Files to Split**: Enter the number of video files to process.
+   - **Number of Clips per Video**: Enter the number of clips to generate per video.
 
-3. **Start Processing:**
-   - Click the "Process Videos" button to start processing. The application will save the last configuration used, which will be loaded the next time the application is run.
+3. **Start Processing**:
+   - Click the "Process Videos" button to start the splitting process.
 
-## Configuration File
+4. **Monitor Progress**:
+   - The progress and completion status will be displayed in the log area.
 
-The application saves the last used configuration to a file named `last_config.json` in the same directory as the script. This file contains the following settings:
+## Configuration
 
-- `output_folder`: The path to the input folder.
-- `split_folder`: The path to the output folder.
-- `clip_duration`: The duration of each clip in seconds.
-- `num_to_split`: The number of video files to process.
-- `num_clips`: The number of clips to generate per video.
+The script saves and loads configuration settings using a JSON file (`last_config.json`). This includes the input folder path, split folder path, clip duration, number of files to split, and number of clips per video.
 
 ## Troubleshooting
 
-- **Error Messages:** If you encounter any issues, check the log messages in the interface for details.
-- **Invalid Paths:** Ensure that the input and split folder paths are correct and that the folders exist.
-
-## Contributing
-
-Feel free to open issues or submit pull requests if you have suggestions or improvements. Contributions are welcome!
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+- **Error Creating Clips**: Ensure that `ffmpeg` is correctly installed and accessible from the command line.
+- **Invalid Paths**: Verify that the specified folders exist and are accessible.
+- **Invalid Numeric Values**: Ensure that numeric fields are correctly entered and within valid ranges.
 
 ## Contact
 
-For any questions or feedback, please contact [carlosfrenesi01@gmail.com](mailto:your.email@example.com).
+For questions or support, you can reach out via:
 
- to customize this README with additional information or instructions specific to your needs.
+- **Email**: [abobicarlo@gmail.com](mailto:abobicarlo@gmail.com)
+- **LinkedIn**: [linkedin.com/in/abobicarlo](https://www.linkedin.com/in/abobicarlo/)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
