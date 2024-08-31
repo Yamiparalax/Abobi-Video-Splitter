@@ -172,7 +172,7 @@ class Ui_MainWindow(QtCore.QObject):
             return
 
         for file_path in input_path.rglob('*'):
-            if file_path.suffix.lower() in ['.mp4', '.mkv', '.avi', '.webm']:
+            if file_path.suffix.lower() in ['.mp4', '.mkv', '.avi', '.webm', '.mov']:
                 self.video_files.append(str(file_path))
 
         if not self.video_files:
